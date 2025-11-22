@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'Delete Category'**
   String get deleteCategoryTitle;
 
+  /// No description provided for @noCategoriesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet'**
+  String get noCategoriesYet;
+
   /// No description provided for @deleteTaskTitle.
   ///
   /// In en, this message translates to:

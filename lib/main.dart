@@ -4,7 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Додано
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
@@ -21,6 +21,11 @@ import 'features/auth/logic/bloc/auth_state.dart';
 import 'features/settings/data/repositories/settings_repository.dart';
 import 'features/settings/logic/cubit/settings_cubit.dart';
 import 'features/settings/logic/cubit/settings_state.dart';
+
+// Categories
+import 'features/categories/data/repositories/categories_repository.dart';
+import 'features/categories/logic/bloc/categories_bloc.dart';
+import 'features/categories/logic/bloc/categories_event.dart';
 
 // Screens
 import 'features/auth/screens/welcome_screen.dart';
@@ -45,22 +50,26 @@ void main() async {
 
   // 1. Ініціалізація SharedPreferences
   final prefs = await SharedPreferences.getInstance();
-  final settingsRepository = SettingsRepository(prefs);
   final authRepository = AuthRepository();
+  final categoriesRepository = CategoriesRepository();
+  final settingsRepository = SettingsRepository(prefs);
 
   runApp(ToDoApp(
     authRepository: authRepository,
+    categoriesRepository: categoriesRepository,
     settingsRepository: settingsRepository,
   ));
 }
 
 class ToDoApp extends StatelessWidget {
   final AuthRepository authRepository;
+  final CategoriesRepository categoriesRepository;
   final SettingsRepository settingsRepository;
 
   const ToDoApp({
     super.key,
     required this.authRepository,
+    required this.categoriesRepository,
     required this.settingsRepository,
   });
 
@@ -70,6 +79,7 @@ class ToDoApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: authRepository),
+        RepositoryProvider.value(value: categoriesRepository),
         RepositoryProvider.value(value: settingsRepository),
       ],
       child: MultiBlocProvider(
@@ -79,6 +89,11 @@ class ToDoApp extends StatelessWidget {
             create: (context) => AuthBloc(
               authRepository: context.read<AuthRepository>(),
             )..add(AuthCheckRequested()),
+          ),
+          // Categories Bloc
+          BlocProvider(
+            create: (context) => CategoriesBloc(repository: context.read<CategoriesRepository>()
+            )..add(LoadCategories()),
           ),
           // Settings Cubit
           BlocProvider(

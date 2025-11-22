@@ -55,6 +55,7 @@
   "addCategoryTitle": "Add Category",
   "editCategoryTitle": "Edit Category",
   "deleteCategoryTitle": "Delete Category",
+  "noCategoriesYet": "No categories yet",
   "deleteTaskTitle": "Delete Task",
   "areYouSureLogOut": "Are you sure you want to log out?",
   "areYouSureLogOutFrom": "Are you sure you want to log out of {email}?",

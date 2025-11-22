@@ -55,6 +55,7 @@
   "addCategoryTitle": "Додати категорію",
   "editCategoryTitle": "Редагувати категорію",
   "deleteCategoryTitle": "Видалити категорію",
+  "noCategoriesYet": "Ще немає категорій",
   "deleteTaskTitle": "Видалити завдання",
   "areYouSureLogOut": "Ви впевнені, що хочете вийти?",
   "areYouSureLogOutFrom": "Ви впевнені, що хочете вийти з облікового запису {email}?",

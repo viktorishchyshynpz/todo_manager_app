@@ -157,6 +157,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get deleteCategoryTitle => 'Видалити категорію';
 
   @override
+  String get noCategoriesYet => 'Ще немає категорій';
+
+  @override
   String get deleteTaskTitle => 'Видалити завдання';
 
   @override

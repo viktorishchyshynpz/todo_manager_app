@@ -157,6 +157,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteCategoryTitle => 'Delete Category';
 
   @override
+  String get noCategoriesYet => 'No categories yet';
+
+  @override
   String get deleteTaskTitle => 'Delete Task';
 
   @override
