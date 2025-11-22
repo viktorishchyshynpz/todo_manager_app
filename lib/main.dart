@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // Додано для BLoC
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Додано
 
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
 import 'l10n/app_localizations.dart';
 
-// --- Imports для BLoC та Auth ---
+// Auth
 import 'features/auth/data/repositories/auth_repository.dart';
 import 'features/auth/logic/bloc/auth_bloc.dart';
 import 'features/auth/logic/bloc/auth_event.dart';
 import 'features/auth/logic/bloc/auth_state.dart';
 
-// --- Screens ---
+// Settings
+import 'features/settings/data/repositories/settings_repository.dart';
+import 'features/settings/logic/cubit/settings_cubit.dart';
+import 'features/settings/logic/cubit/settings_state.dart';
+
+// Screens
 import 'features/auth/screens/welcome_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
@@ -37,71 +43,96 @@ void main() async {
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   await FirebaseAnalytics.instance.logEvent(name: 'app_started');
 
-  // 1. Створюємо інстанс репозиторію
+  // 1. Ініціалізація SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  final settingsRepository = SettingsRepository(prefs);
   final authRepository = AuthRepository();
 
-  runApp(ToDoApp(authRepository: authRepository));
+  runApp(ToDoApp(
+    authRepository: authRepository,
+    settingsRepository: settingsRepository,
+  ));
 }
 
 class ToDoApp extends StatelessWidget {
   final AuthRepository authRepository;
+  final SettingsRepository settingsRepository;
 
-  const ToDoApp({super.key, required this.authRepository});
+  const ToDoApp({
+    super.key,
+    required this.authRepository,
+    required this.settingsRepository,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // 2. Впроваджуємо Репозиторій через Provider
-    return RepositoryProvider.value(
-      value: authRepository,
-      child: BlocProvider(
-        // 3. Створюємо AuthBloc і одразу запускаємо перевірку стану
-        create: (context) => AuthBloc(
-          authRepository: context.read<AuthRepository>(),
-        )..add(AuthCheckRequested()),
+    // Використовуємо MultiRepositoryProvider для передачі обох репозиторіїв
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: authRepository),
+        RepositoryProvider.value(value: settingsRepository),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          // Auth Bloc
+          BlocProvider(
+            create: (context) => AuthBloc(
+              authRepository: context.read<AuthRepository>(),
+            )..add(AuthCheckRequested()),
+          ),
+          // Settings Cubit
+          BlocProvider(
+            create: (context) => SettingsCubit(
+              context.read<SettingsRepository>(),
+            ),
+          ),
+        ],
+        // BlocBuilder слухає SettingsCubit, щоб оновлювати тему і мову всього додатку
+        child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, settingsState) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'ToDo Manager',
 
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'ToDo Manager',
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.light,
+              // ТЕМА: Беремо зі стану
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: settingsState.themeMode,
 
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('en'),
-            Locale('uk'),
-          ],
-          locale: const Locale('en'), // Поки що хардкод, в Lab 5 SettingsCubit це змінить
+              // ЛОКАЛІЗАЦІЯ: Беремо зі стану
+              locale: settingsState.locale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en'),
+                Locale('uk'),
+              ],
 
-          // 4. ЗАМІСТЬ initialRoute використовуємо home з AuthGate
-          // AuthGate сам вирішить, куди направити користувача
-          home: const AuthGate(),
+              home: const AuthGate(),
 
-          routes: {
-            // AppRoutes.welcome видаляємо звідси, бо він обробляється в AuthGate,
-            // або залишаємо, якщо потрібна явна навігація
-            AppRoutes.login: (context) => const LoginScreen(),
-            AppRoutes.register: (context) => const RegisterScreen(),
-            AppRoutes.home: (context) => const HomeScreen(),
-            AppRoutes.settings: (context) => const SettingsScreen(),
-            AppRoutes.manageCategories: (context) => const ManageCategoriesScreen(),
-            AppRoutes.newTask: (context) => const NewTaskScreen(),
-            AppRoutes.emailVerification: (context) => const EmailVerificationScreen(),
-
-            AppRoutes.editTask: (context) {
-              final args = ModalRoute.of(context)?.settings.arguments;
-              if (args is Map<String, dynamic>) {
-                return EditTaskScreen(task: args);
-              }
-              return const Scaffold(
-                body: Center(child: Text('Error: Task data missing!')),
-              );
-            },
+              routes: {
+                AppRoutes.login: (context) => const LoginScreen(),
+                AppRoutes.register: (context) => const RegisterScreen(),
+                AppRoutes.home: (context) => const HomeScreen(),
+                AppRoutes.settings: (context) => const SettingsScreen(),
+                AppRoutes.manageCategories: (context) => const ManageCategoriesScreen(),
+                AppRoutes.newTask: (context) => const NewTaskScreen(),
+                AppRoutes.emailVerification: (context) => const EmailVerificationScreen(),
+                AppRoutes.editTask: (context) {
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map<String, dynamic>) {
+                    return EditTaskScreen(task: args);
+                  }
+                  return const Scaffold(
+                    body: Center(child: Text('Error: Task data missing!')),
+                  );
+                },
+              },
+            );
           },
         ),
       ),
@@ -109,8 +140,6 @@ class ToDoApp extends StatelessWidget {
   }
 }
 
-/// Цей віджет слухає стан авторизації і показує правильний екран.
-/// Це замінює стару логіку `initialRoute: isVerified ? ... : ...`
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -118,24 +147,15 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        // 1. Якщо стан ще не визначено (сплеш скрін)
         if (state.status == AuthStatus.initial || state.status == AuthStatus.loading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-
-        // 2. Користувач авторизований і пошта підтверджена -> Home
         if (state.status == AuthStatus.authenticated) {
           return const HomeScreen();
         }
-
-        // 3. Користувач авторизований, але пошта НЕ підтверджена -> Verify
         if (state.status == AuthStatus.unverified) {
           return const EmailVerificationScreen();
         }
-
-        // 4. Всі інші варіанти (не авторизований, помилка) -> Welcome
         return const WelcomeScreen();
       },
     );

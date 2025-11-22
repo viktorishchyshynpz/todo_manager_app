@@ -18,7 +18,7 @@
 
   "getStarted": "Розпочати",
   "logIn": "Увійти",
-  "register": "Реєстрація",
+  "register": "Зареєструватися",
   "saveChanges": "Зберегти зміни",
   "saveTask": "Зберегти завдання",
   "delete": "Видалити",
@@ -57,7 +57,7 @@
   "deleteCategoryTitle": "Видалити категорію",
   "deleteTaskTitle": "Видалити завдання",
   "areYouSureLogOut": "Ви впевнені, що хочете вийти?",
-
+  "areYouSureLogOutFrom": "Ви впевнені, що хочете вийти з облікового запису {email}?",
   "confirmDeleteCategory": "Ви впевнені, що хочете видалити \"{name}\"?",
   "confirmDeleteTask": "Ви впевнені, що хочете видалити \"{title}\"?",
   "dueWithValue": "Термін: {due}",
@@ -116,7 +116,7 @@
   "alreadyHaveAccount": "Вже є акаунт? ",
   "dontHaveAccount": "Немає акаунту? ",
   "darkMode": "Темна тема",
-  "notifiacations": "Сповіщення",
+  "notifications": "Сповіщення",
   "pushNotifications": "Push сповіщення",
   "emailReminders": "Email нагадування"
 }

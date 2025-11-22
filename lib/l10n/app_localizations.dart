@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to log out?'**
   String get areYouSureLogOut;
 
+  /// No description provided for @areYouSureLogOutFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out of {email}?'**
+  String areYouSureLogOutFrom(String email);
+
   /// No description provided for @confirmDeleteCategory.
   ///
   /// In en, this message translates to:
@@ -704,11 +710,11 @@ abstract class AppLocalizations {
   /// **'Dark Mode'**
   String get darkMode;
 
-  /// No description provided for @notifiacations.
+  /// No description provided for @notifications.
   ///
   /// In en, this message translates to:
   /// **'Notifications'**
-  String get notifiacations;
+  String get notifications;
 
   /// No description provided for @pushNotifications.
   ///

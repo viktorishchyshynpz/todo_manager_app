@@ -57,6 +57,14 @@
   "deleteCategoryTitle": "Delete Category",
   "deleteTaskTitle": "Delete Task",
   "areYouSureLogOut": "Are you sure you want to log out?",
+  "areYouSureLogOutFrom": "Are you sure you want to log out of {email}?",
+  "@areYouSureLogOutFrom": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
 
   "confirmDeleteCategory": "Are you sure you want to delete \"{name}\"?",
   "@confirmDeleteCategory": {
@@ -151,7 +159,7 @@
   "alreadyHaveAccount": "Already have an account? ",
   "dontHaveAccount": "Don't have an account? ",
   "darkMode": "Dark Mode",
-  "notifiacations": "Notifications",
+  "notifications": "Notifications",
   "pushNotifications": "Push Notifications",
   "emailReminders": "Email Reminders"
 }

@@ -163,6 +163,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get areYouSureLogOut => 'Are you sure you want to log out?';
 
   @override
+  String areYouSureLogOutFrom(String email) {
+    return 'Are you sure you want to log out of $email?';
+  }
+
+  @override
   String confirmDeleteCategory(String name) {
     return 'Are you sure you want to delete \"$name\"?';
   }
@@ -330,7 +335,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get darkMode => 'Dark Mode';
 
   @override
-  String get notifiacations => 'Notifications';
+  String get notifications => 'Notifications';
 
   @override
   String get pushNotifications => 'Push Notifications';

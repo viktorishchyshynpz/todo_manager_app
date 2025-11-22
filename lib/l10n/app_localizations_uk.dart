@@ -58,7 +58,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get logIn => 'Увійти';
 
   @override
-  String get register => 'Реєстрація';
+  String get register => 'Зареєструватися';
 
   @override
   String get saveChanges => 'Зберегти зміни';
@@ -161,6 +161,11 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get areYouSureLogOut => 'Ви впевнені, що хочете вийти?';
+
+  @override
+  String areYouSureLogOutFrom(String email) {
+    return 'Ви впевнені, що хочете вийти з облікового запису $email?';
+  }
 
   @override
   String confirmDeleteCategory(String name) {
@@ -327,7 +332,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get darkMode => 'Темна тема';
 
   @override
-  String get notifiacations => 'Сповіщення';
+  String get notifications => 'Сповіщення';
 
   @override
   String get pushNotifications => 'Push сповіщення';
