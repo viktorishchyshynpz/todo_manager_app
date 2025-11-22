@@ -83,3 +83,61 @@ class TasksBloc extends Bloc<TasksEvent, TasksState> {
     }
   }
 }
+
+/*import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../data/repositories/tasks_repository.dart';
+import 'tasks_event.dart';
+import 'tasks_state.dart';
+
+class TasksBloc extends Bloc<TasksEvent, TasksState> {
+  final TasksRepository _repository;
+
+  TasksBloc({required TasksRepository repository})
+      : _repository = repository,
+        super(const TasksState()) {
+    on<LoadTasks>(_onLoadTasks);
+    on<AddTask>(_onAddTask);
+    on<UpdateTask>(_onUpdateTask);
+    on<DeleteTask>(_onDeleteTask);
+  }
+
+  Future<void> _onLoadTasks(LoadTasks event, Emitter<TasksState> emit) async {
+    emit(state.copyWith(status: TasksStatus.loading));
+    try {
+      final tasks = await _repository.getTasks();
+      emit(state.copyWith(status: TasksStatus.success, tasks: tasks));
+    } catch (e) {
+      emit(state.copyWith(status: TasksStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> _onAddTask(AddTask event, Emitter<TasksState> emit) async {
+    emit(state.copyWith(status: TasksStatus.loading));
+    try {
+      await _repository.addTask(event.task);
+      add(LoadTasks());
+    } catch (e) {
+      emit(state.copyWith(status: TasksStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateTask(UpdateTask event, Emitter<TasksState> emit) async {
+    emit(state.copyWith(status: TasksStatus.loading));
+    try {
+      await _repository.updateTask(event.task);
+      add(LoadTasks());
+    } catch (e) {
+      emit(state.copyWith(status: TasksStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteTask(DeleteTask event, Emitter<TasksState> emit) async {
+    emit(state.copyWith(status: TasksStatus.loading));
+    try {
+      await _repository.deleteTask(event.taskId);
+      add(LoadTasks());
+    } catch (e) {
+      emit(state.copyWith(status: TasksStatus.failure, errorMessage: e.toString()));
+    }
+  }
+}*/

@@ -17,7 +17,7 @@ class SettingsRepository {
     final themeString = _prefs.getString(_themeKey);
     if (themeString == 'dark') return ThemeMode.dark;
     if (themeString == 'light') return ThemeMode.light;
-    return ThemeMode.system; // За замовчуванням
+    return ThemeMode.light; // За замовчуванням
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
