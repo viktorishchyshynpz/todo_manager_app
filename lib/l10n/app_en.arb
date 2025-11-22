@@ -1,0 +1,157 @@
+{
+  "@@locale": "en",
+  "appName": "ToDo Manager",
+  "welcomeTitle": "Welcome to\nToDo Manager",
+  "myTasks": "My Tasks",
+  "manageCategories": "Manage Categories",
+  "settings": "Settings",
+  "newTask": "New Task",
+  "editTask": "Edit Task",
+  "appearance": "Appearance",
+  "language": "Language",
+  "categories": "Categories",
+  "tasks": "Tasks",
+
+  "welcomeBack": "Welcome back",
+  "createYourAccount": "Create your account",
+  "welcomeSubtitle": "Manage your tasks\nefficiently and conveniently",
+
+  "getStarted": "Get Started",
+  "logIn": "Log In",
+  "register": "Register",
+  "saveChanges": "Save Changes",
+  "saveTask": "Save Task",
+  "delete": "Delete",
+  "logOut": "Log Out",
+  "add": "Add",
+  "cancel": "Cancel",
+  "save": "Save",
+  "edit": "Edit",
+
+  "email": "Email",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "title": "Title",
+  "description": "Description",
+  "category": "Category",
+  "status": "Status",
+  "deadline": "Deadline",
+
+  "hintEnterTaskTitle": "Enter task title",
+  "hintAddDescription": "Add description...",
+  "hintSelectCategory": "Select Category",
+  "hintSelectStatus": "Select Status",
+  "hintDateMask": "dd.mm.yy --:--",
+  "categoryName": "Category name",
+
+  "pressAgainToExit": "Press again to exit",
+  "settingsSavedSuccessfully": "Settings saved successfully!",
+  "loggedOutSuccessfully": "Logged out successfully!",
+  "pleaseEnterTaskTitle": "Please enter task title",
+  "taskUpdatedSuccessfully": "Task updated successfully!",
+  "taskDeletedSuccessfully": "Task deleted successfully!",
+  "taskSavedSuccessfully": "Task saved successfully!",
+
+  "addCategoryTitle": "Add Category",
+  "editCategoryTitle": "Edit Category",
+  "deleteCategoryTitle": "Delete Category",
+  "deleteTaskTitle": "Delete Task",
+  "areYouSureLogOut": "Are you sure you want to log out?",
+
+  "confirmDeleteCategory": "Are you sure you want to delete \"{name}\"?",
+  "@confirmDeleteCategory": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmDeleteTask": "Are you sure you want to delete \"{title}\"?",
+  "@confirmDeleteTask": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "dueWithValue": "Due: {due}",
+  "@dueWithValue": {
+    "placeholders": {
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+
+  "categoryAll": "All",
+  "categoryWork": "Work",
+  "categoryStudy": "Study",
+  "categoryHome": "Home",
+
+  "statusNew": "New",
+  "statusInProgress": "In Progress",
+  "statusCompleted": "Completed",
+  "statusCanceled": "Canceled",
+
+  "english": "English",
+  "ukrainian": "Ukrainian",
+
+  "errorInvalidEmail": "Invalid email format",
+  "errorUserDisabled": "This user account has been disabled",
+  "errorUserNotFound": "No user found with this email",
+  "errorWrongPassword": "Incorrect password",
+  "errorEmailAlreadyInUse": "This email is already in use",
+  "errorOperationNotAllowed": "Email/password sign-in is not enabled",
+  "errorWeakPassword": "The password is too weak",
+  "errorInvalidCredential": "Invalid sign-in credentials",
+  "errorUnknownAuthError": "Authentication error occurred",
+  "errorUnknown": "An unexpected error occurred, please try again later",
+  "errorAccountDeletion": "Error deleting account: ",
+
+  "errorEmailEmpty": "Please enter your email",
+  "errorEmailInvalid": "Please enter a valid email",
+  "errorPasswordEmpty": "Please enter your password",
+  "errorPasswordTooShort": "Password must be at least 9 characters long",
+  "errorConfirmPasswordEmpty": "Please confirm your password",
+  "errorPasswordsDoNotMatch": "Passwords do not match",
+
+  "errorTaskTitleEmpty": "Please enter a task title",
+  "errorTaskTitleTooLong": "Title is too long",
+  "errorTaskDescriptionTooLong": "Description is too long",
+  "errorCategoryNameEmpty": "Please enter a category name",
+  "errorCategoryNameTooLong": "Name is too long",
+
+  "emailVerificationAppBar": "Email Verification",
+  "emailVerificationHeader": "Verify your email",
+  "emailVerificationSentTo": "We have sent a verification email to {email}. Please check your inbox and click the link in the email.",
+  "@emailVerificationSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailVerificationTimeLabel": "Time to verify:",
+  "emailVerificationTimeExpiredNote": "After the time expires, the account will be automatically deleted",
+  "emailVerifiedButton": "I have verified my email",
+  "resendVerificationButton": "Resend verification email",
+  "resendVerificationSuccess": "Verification email resent!",
+  "emailNotVerifiedMessage": "Email not verified yet. Please check your inbox.",
+  "deleteRequiresRecentLogin": "Account deletion requires recent authentication. Please sign in again.",
+  "emailVerificationExpiredMessage": "Verification time expired. Please sign up again.",
+  "errorWithDetails": "Error: {details}",
+  "@errorWithDetails": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+
+  "alreadyHaveAccount": "Already have an account? ",
+  "dontHaveAccount": "Don't have an account? ",
+  "darkMode": "Dark Mode",
+  "notifiacations": "Notifications",
+  "pushNotifications": "Push Notifications",
+  "emailReminders": "Email Reminders"
+}
