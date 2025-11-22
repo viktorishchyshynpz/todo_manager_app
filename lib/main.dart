@@ -27,6 +27,12 @@ import 'features/categories/data/repositories/categories_repository.dart';
 import 'features/categories/logic/bloc/categories_bloc.dart';
 import 'features/categories/logic/bloc/categories_event.dart';
 
+// Tasks
+import 'features/tasks/data/repositories/tasks_repository.dart'; // New
+import 'features/tasks/logic/bloc/tasks_bloc.dart'; // New
+import 'features/tasks/logic/bloc/tasks_event.dart'; // New
+import 'features/tasks/data/models/task_model.dart';
+
 // Screens
 import 'features/auth/screens/welcome_screen.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -52,11 +58,13 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final authRepository = AuthRepository();
   final categoriesRepository = CategoriesRepository();
+  final tasksRepository = TasksRepository();
   final settingsRepository = SettingsRepository(prefs);
 
   runApp(ToDoApp(
     authRepository: authRepository,
     categoriesRepository: categoriesRepository,
+    tasksRepository: tasksRepository,
     settingsRepository: settingsRepository,
   ));
 }
@@ -64,12 +72,14 @@ void main() async {
 class ToDoApp extends StatelessWidget {
   final AuthRepository authRepository;
   final CategoriesRepository categoriesRepository;
+  final TasksRepository tasksRepository;
   final SettingsRepository settingsRepository;
 
   const ToDoApp({
     super.key,
     required this.authRepository,
     required this.categoriesRepository,
+    required this.tasksRepository,
     required this.settingsRepository,
   });
 
@@ -80,6 +90,7 @@ class ToDoApp extends StatelessWidget {
       providers: [
         RepositoryProvider.value(value: authRepository),
         RepositoryProvider.value(value: categoriesRepository),
+        RepositoryProvider.value(value: tasksRepository),
         RepositoryProvider.value(value: settingsRepository),
       ],
       child: MultiBlocProvider(
@@ -94,6 +105,12 @@ class ToDoApp extends StatelessWidget {
           BlocProvider(
             create: (context) => CategoriesBloc(repository: context.read<CategoriesRepository>()
             )..add(LoadCategories()),
+          ),
+          // Tasks Bloc
+          BlocProvider(
+            create: (context) => TasksBloc(
+              repository: context.read<TasksRepository>(),
+            )..add(LoadTasks()),
           ),
           // Settings Cubit
           BlocProvider(
@@ -139,7 +156,7 @@ class ToDoApp extends StatelessWidget {
                 AppRoutes.emailVerification: (context) => const EmailVerificationScreen(),
                 AppRoutes.editTask: (context) {
                   final args = ModalRoute.of(context)?.settings.arguments;
-                  if (args is Map<String, dynamic>) {
+                  if (args is TaskModel) { // Change Map to TaskModel
                     return EditTaskScreen(task: args);
                   }
                   return const Scaffold(
@@ -176,115 +193,3 @@ class AuthGate extends StatelessWidget {
     );
   }
 }
-
-/*
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'core/theme/app_theme.dart';
-import 'core/routes/app_routes.dart';
-
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'l10n/app_localizations.dart';
-
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'firebase_options.dart';
-
-import 'features/auth/data/repositories/auth_repository.dart';
-import 'features/auth/logic/bloc/auth_bloc.dart';
-
-import 'features/tasks/logic/bloc/tasks_bloc.dart';
-import 'features/tasks/data/repositories/tasks_repository.dart';
-
-import 'features/categories/logic/bloc/categories_bloc.dart';
-import 'features/categories/data/repositories/categories_repository.dart';
-
-import 'features/settings/logic/cubit/settings_cubit.dart';
-
-import 'features/auth/screens/welcome_screen.dart';
-import 'features/auth/screens/login_screen.dart';
-import 'features/auth/screens/register_screen.dart';
-import 'features/auth/screens/email_verification_screen.dart';
-
-import 'features/home/screens/home_screen.dart';
-import 'features/settings/screens/settings_screen.dart';
-import 'features/categories/screens/manage_categories_screen.dart';
-import 'features/tasks/screens/new_task_screen.dart';
-import 'features/tasks/screens/edit_task_screen.dart';
-
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-  await FirebaseAnalytics.instance.logEvent(name: 'app_started');
-
-  runApp(const ToDoApp());
-}
-
-class ToDoApp extends StatelessWidget {
-  const ToDoApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authRepo = AuthRepository.instance;
-    final user = authRepo.currentUser;
-
-    final bool isVerified = user != null && user.emailVerified;
-
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<AuthBloc>(
-          create: (_) => AuthBloc(authRepo),
-        ),
-        BlocProvider<TasksBloc>(
-          create: (_) => TasksBloc(TasksRepository())..add(LoadTasks()),
-        ),
-        BlocProvider<CategoriesBloc>(
-          create: (_) =>
-              CategoriesBloc(CategoriesRepository())..add(LoadCategories()),
-        ),
-        BlocProvider<SettingsCubit>(
-          create: (_) => SettingsCubit(),
-        ),
-      ],
-      child: BlocBuilder<SettingsCubit, SettingsState>(
-        builder: (context, settingsState) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'ToDo Manager',
-
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: settingsState.isDark ? ThemeMode.dark : ThemeMode.light,
-
-            locale: settingsState.locale,
-            supportedLocales: const [
-              Locale('en'),
-              Locale('uk'),
-            ],
-
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-
-            initialRoute:
-                isVerified ? AppRoutes.home : AppRoutes.welcome,
-
-            routes: AppRoutes.routes,
-          );
-        },
-      ),
-    );
-  }
-}
-*/

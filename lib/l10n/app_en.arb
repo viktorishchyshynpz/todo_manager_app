@@ -56,6 +56,7 @@
   "editCategoryTitle": "Edit Category",
   "deleteCategoryTitle": "Delete Category",
   "noCategoriesYet": "No categories yet",
+  "noTasksYet": "No tasks yet",
   "deleteTaskTitle": "Delete Task",
   "areYouSureLogOut": "Are you sure you want to log out?",
   "areYouSureLogOutFrom": "Are you sure you want to log out of {email}?",
@@ -93,9 +94,6 @@
   },
 
   "categoryAll": "All",
-  "categoryWork": "Work",
-  "categoryStudy": "Study",
-  "categoryHome": "Home",
 
   "statusNew": "New",
   "statusInProgress": "In Progress",

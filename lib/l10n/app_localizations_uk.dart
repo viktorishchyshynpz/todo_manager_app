@@ -160,6 +160,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get noCategoriesYet => 'Ще немає категорій';
 
   @override
+  String get noTasksYet => 'Ще немає завдань';
+
+  @override
   String get deleteTaskTitle => 'Видалити завдання';
 
   @override
@@ -187,15 +190,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get categoryAll => 'Всі';
-
-  @override
-  String get categoryWork => 'Робота';
-
-  @override
-  String get categoryStudy => 'Навчання';
-
-  @override
-  String get categoryHome => 'Дім';
 
   @override
   String get statusNew => 'Нове';

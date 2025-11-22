@@ -160,6 +160,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noCategoriesYet => 'No categories yet';
 
   @override
+  String get noTasksYet => 'No tasks yet';
+
+  @override
   String get deleteTaskTitle => 'Delete Task';
 
   @override
@@ -187,15 +190,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryAll => 'All';
-
-  @override
-  String get categoryWork => 'Work';
-
-  @override
-  String get categoryStudy => 'Study';
-
-  @override
-  String get categoryHome => 'Home';
 
   @override
   String get statusNew => 'New';

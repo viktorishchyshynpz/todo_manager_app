@@ -1,8 +1,18 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '/core/routes/app_routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
+import '../../../core/routes/app_routes.dart';
 import '../../../l10n/app_localizations.dart';
+
+// Blocs
+import '../../categories/logic/bloc/categories_bloc.dart';
+import '../../categories/logic/bloc/categories_state.dart';
+import '../../tasks/logic/bloc/tasks_bloc.dart';
+import '../../tasks/logic/bloc/tasks_state.dart';
+import '../../tasks/data/models/task_model.dart';
+import '../../tasks/logic/bloc/tasks_event.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,13 +22,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Зберігаємо категорію.
-  // Важливо: при зміні мови значення 'All' зміниться на 'Всі', тому логіка фільтрації по назві може ламатися.
-  // В реальному додатку використовують ID ('all', 'work'), а відображають переклад.
-  // Для цієї лаби ми просто ініціалізуємо це пізніше.
-  String? _selectedCategory;
-
-  DateTime? _lastBackPressed;
+  // Змінна для фільтрації. null = "Всі"
+  String? _selectedCategoryFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -26,356 +31,300 @@ class _HomeScreenState extends State<HomeScreen> {
     final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    // Ініціалізуємо категорію за замовчуванням, якщо вона пуста
-    _selectedCategory ??= l10n.categoryAll;
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, AppRoutes.newTask);
+        },
+        child: const Icon(Icons.add, size: 28),
+      ),
+      body: SafeArea(
+        child: BlocBuilder<TasksBloc, TasksState>(
+          builder: (context, tasksState) {
+            if (tasksState.status == TasksStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-    // СТВОРЮЄМО СПИСКИ ВСЕРЕДИНІ BUILD, ЩОБ МАТИ ДОСТУП ДО l10n
-    final List<Map<String, dynamic>> categories = [
-      {'name': l10n.categoryAll, 'selected': _selectedCategory == l10n.categoryAll},
-      {'name': l10n.categoryWork, 'selected': _selectedCategory == l10n.categoryWork},
-      {'name': l10n.categoryStudy, 'selected': _selectedCategory == l10n.categoryStudy},
-      {'name': l10n.categoryHome, 'selected': _selectedCategory == l10n.categoryHome},
-    ];
+            // Фільтруємо завдання
+            final allTasks = tasksState.tasks;
+            final tasksToShow = _selectedCategoryFilter == null
+                ? allTasks
+                : allTasks.where((t) => t.categoryName == _selectedCategoryFilter).toList();
 
-    final List<Map<String, dynamic>> tasks = [
-      {
-        'title': 'Finish Lab 2',
-        'description': 'nothing',
-        'category': l10n.categoryStudy, // Використовуємо localized string
-        'status': l10n.statusInProgress,
-        'due': '27.10.2025 22:00',
-        'completed': false,
-      },
-      {
-        'title': 'Read Chapter 5',
-        'description': 'none',
-        'category': l10n.categoryStudy,
-        'status': l10n.statusNew,
-        'due': '09.09.2025 18:00',
-        'completed': false,
-      },
-      {
-        'title': 'Team Meeting',
-        'description': 'none',
-        'category': l10n.categoryWork,
-        'status': l10n.statusInProgress,
-        'due': '03.11.2025 10:00',
-        'completed': false,
-      },
-      {
-        'title': 'Clean the house',
-        'description': 'none',
-        'category': l10n.categoryHome,
-        'status': l10n.statusInProgress,
-        'due': '30.10.2025 18:00',
-        'completed': false,
-      },
-      {
-        'title': 'Finish Lab 3',
-        'description': 'none',
-        'category': l10n.categoryStudy,
-        'status': l10n.statusInProgress,
-        'due': '10.11.2025 22:00',
-        'completed': false,
-      },
-    ];
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final height = constraints.maxHeight;
+                final minSide = min(width, height);
 
-    return WillPopScope(
-      onWillPop: () async {
-        final now = DateTime.now();
-        final maxDuration = const Duration(seconds: 2);
-
-        if (_lastBackPressed == null || now.difference(_lastBackPressed!) > maxDuration) {
-          _lastBackPressed = now;
-          ScaffoldMessenger.of(context)
-            ..removeCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(l10n.pressAgainToExit),
-                duration: maxDuration,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
-            );
-          return false;
-        }
-
-        await SystemNavigator.pop();
-        return false;
-      },
-      child: Scaffold(
-        body: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final height = constraints.maxHeight;
-              final minSide = min(width, height);
-
-              return Column(
-                children: [
-                  // Верхній рядок
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: width * 0.06,
-                      vertical: height * 0.02,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          l10n.myTasks,
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontSize: minSide * 0.08,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.settings,
-                            size: minSide * 0.08,
-                          ),
-                          onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.settings);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Expanded(
-                    child: SingleChildScrollView(
+                return CustomScrollView(
+                  slivers: [
+                    // 1. Header (My Tasks + Settings)
+                    SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: width * 0.06),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: width * 0.06,
+                          vertical: height * 0.02,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            SizedBox(height: height * 0.02),
-
-                            // Підзаголовок: Категорії
                             Text(
-                              l10n.categories,
-                              style: textTheme.bodyLarge?.copyWith(
-                                fontSize: minSide * 0.045,
+                              l10n.myTasks,
+                              style: textTheme.headlineMedium?.copyWith(
+                                fontSize: minSide * 0.08,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-
-                            SizedBox(height: height * 0.015),
-
-                            // Горизонтальний список категорій
-                            SizedBox(
-                              height: minSide * 0.12,
-                              child: ListView(
-                                scrollDirection: Axis.horizontal,
-                                children: [
-                                  ActionChip(
-                                    avatar: Icon(
-                                      Icons.edit,
-                                      size: minSide * 0.045,
-                                      color: theme.chipTheme.labelStyle?.color ?? theme.iconTheme.color,
-                                    ),
-                                    label: Text(
-                                      l10n.edit,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: minSide * 0.04,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.pushNamed(context, AppRoutes.manageCategories);
-                                    },
-                                  ),
-
-                                  SizedBox(width: width * 0.02),
-
-                                  // Чіпи категорій
-                                  ...categories.map((category) {
-                                    final isSelected = _selectedCategory == category['name'];
-                                    return Padding(
-                                      padding: EdgeInsets.only(right: width * 0.02),
-                                      child: FilterChip(
-                                        label: Text(
-                                          category['name'],
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: minSide * 0.04,
-                                            color: isSelected
-                                                ? theme.colorScheme.onPrimary
-                                                : theme.textTheme.bodyMedium?.color,
-                                          ),
-                                        ),
-                                        selected: isSelected,
-                                        side: isSelected
-                                            ? BorderSide(color: theme.colorScheme.primary)
-                                            : null,
-
-                                        onSelected: (selected) {
-                                          setState(() {
-                                            _selectedCategory = category['name'];
-                                          });
-                                        },
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              ),
+                            IconButton(
+                              icon: Icon(Icons.settings, size: minSide * 0.08),
+                              onPressed: () {
+                                Navigator.pushNamed(context, AppRoutes.settings);
+                              },
                             ),
-
-                            SizedBox(height: height * 0.03),
-
-                            // Підзаголовок: Завдання
-                            Text(
-                              l10n.tasks,
-                              style: textTheme.bodyLarge?.copyWith(
-                                fontSize: minSide * 0.045,
-                              ),
-                            ),
-
-                            SizedBox(height: height * 0.015),
-
-                            // Список карток завдань
-                            ...tasks.map((task) {
-                              return Padding(
-                                padding: EdgeInsets.only(bottom: height * 0.015),
-                                child: _buildTaskCard(
-                                  context,
-                                  task,
-                                  width,
-                                  height,
-                                  minSide,
-                                  l10n, // Передаємо l10n далі
-                                ),
-                              );
-                            }),
-
-                            SizedBox(height: height * 0.1),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, AppRoutes.newTask);
+
+                    // 2. Categories Filter Header
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+                        child: Text(
+                          l10n.categories,
+                          style: textTheme.bodyLarge?.copyWith(
+                            fontSize: minSide * 0.045,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SliverToBoxAdapter(child: SizedBox(height: height * 0.015)),
+
+                    // 3. Categories Horizontal List (BlocBuilder for Categories)
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: minSide * 0.12,
+                        child: BlocBuilder<CategoriesBloc, CategoriesState>(
+                          builder: (context, categoriesState) {
+                            return ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+                              children: [
+                                // Кнопка редагування категорій
+                                ActionChip(
+                                  avatar: Icon(Icons.edit, size: minSide * 0.045),
+                                  label: Text(l10n.edit),
+                                  onPressed: () => Navigator.pushNamed(context, AppRoutes.manageCategories),
+                                ),
+                                SizedBox(width: width * 0.02),
+
+                                // Кнопка "All"
+                                FilterChip(
+                                  label: Text(l10n.categoryAll),
+                                  selected: _selectedCategoryFilter == null,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedCategoryFilter = null;
+                                    });
+                                  },
+                                ),
+                                SizedBox(width: width * 0.02),
+
+                                // Динамічні категорії
+                                ...categoriesState.categories.map((cat) {
+                                  final isSelected = _selectedCategoryFilter == cat.name;
+                                  return Padding(
+                                    padding: EdgeInsets.only(right: width * 0.02),
+                                    child: FilterChip(
+                                      label: Text(cat.name),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        setState(() {
+                                          // Якщо натиснули на вже вибрану - скидаємо фільтр (показуємо всі)
+                                          _selectedCategoryFilter = isSelected ? null : cat.name;
+                                        });
+                                      },
+                                    ),
+                                  );
+                                }),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SliverToBoxAdapter(child: SizedBox(height: height * 0.03)),
+
+                    // 4. Tasks Header
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+                        child: Text(
+                          l10n.tasks,
+                          style: textTheme.bodyLarge?.copyWith(
+                            fontSize: minSide * 0.045,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SliverToBoxAdapter(child: SizedBox(height: height * 0.015)),
+
+                    // 5. Task List (SliverList)
+                    if (tasksToShow.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: height * 0.05),
+                          child: Center(
+                            child: Text(
+                              l10n.noCategoriesYet,
+                              style: textTheme.bodyLarge?.copyWith(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                            final task = tasksToShow[index];
+                            return Padding(
+                              padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: height * 0.007),
+                              child: _TaskCard(
+                                task: task,
+                                width: width,
+                                height: height,
+                                minSide: minSide,
+                                l10n: l10n,
+                              ),
+                            );
+                          },
+                          childCount: tasksToShow.length,
+                        ),
+                      ),
+
+                    // Відступ знизу для FAB
+                    SliverToBoxAdapter(child: SizedBox(height: height * 0.1)),
+                  ],
+                );
+              },
+            );
           },
-          child: const Icon(Icons.add, size: 28),
         ),
       ),
     );
   }
+}
 
-  Widget _buildTaskCard(
-      BuildContext context,
-      Map<String, dynamic> task,
-      double width,
-      double height,
-      double minSide,
-      AppLocalizations l10n,
-      ) {
+// Виніс картку завдання в окремий віджет для читабельності
+class _TaskCard extends StatelessWidget {
+  final TaskModel task;
+  final double width;
+  final double height;
+  final double minSide;
+  final AppLocalizations l10n;
+
+  const _TaskCard({
+    super.key,
+    required this.task,
+    required this.width,
+    required this.height,
+    required this.minSide,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final detailTextStyle = theme.textTheme.bodyMedium?.copyWith(
-      fontSize: minSide * 0.035,
-    );
+    final detailTextStyle = theme.textTheme.bodyMedium?.copyWith(fontSize: minSide * 0.035);
+    final isCompleted = task.status == TaskStatus.completed;
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: theme.dividerColor,
-          width: 1.5,
-        ),
+        side: BorderSide(color: theme.dividerColor, width: 1.5),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            AppRoutes.editTask,
-            arguments: task,
-          );
+          Navigator.pushNamed(context, AppRoutes.editTask, arguments: task);
         },
         child: Padding(
           padding: EdgeInsets.all(width * 0.03),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Center(
-                child: Builder(builder: (context) {
-                  const double baseCheckboxSize = 20.0;
-                  final double desiredSize = (minSide * 0.05).clamp(12.0, 50.0);
-                  final double checkboxScale = desiredSize / baseCheckboxSize;
+              // --- ЛОГІКА ЧЕКБОКСА ---
+              Transform.scale(
+                scale: 1.2,
+                child: Checkbox(
+                  value: isCompleted,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  onChanged: (value) {
+                    if (value == null) return;
 
-                  return Transform.scale(
-                    scale: checkboxScale,
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      width: baseCheckboxSize,
-                      height: baseCheckboxSize,
-                      child: Checkbox(
-                        value: task['completed'],
-                        onChanged: (value) {
-                          setState(() {
-                            task['completed'] = value ?? false;
-                          });
-                        },
-                      ),
-                    ),
-                  );
-                }),
+                    // 1. Визначаємо новий статус
+                    // Якщо поставили галочку -> Completed, якщо зняли -> повертаємо в InProgress
+                    final newStatus = value ? TaskStatus.completed : TaskStatus.inProgress;
+
+                    // 2. Створюємо оновлену модель
+                    final updatedTask = task.copyWith(status: newStatus);
+
+                    // 3. Відправляємо подію в BLoC
+                    context.read<TasksBloc>().add(UpdateTask(updatedTask));
+                  },
+                ),
               ),
+              // -----------------------
 
               SizedBox(width: width * 0.03),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      task['title'],
+                      task.title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: minSide * 0.045,
-                        decoration: task['completed'] ? TextDecoration.lineThrough : null,
+                        // Закреслення, якщо виконано
+                        decoration: isCompleted ? TextDecoration.lineThrough : null,
+                        // Сірий колір, якщо виконано
+                        color: isCompleted ? theme.disabledColor : null,
                       ),
                     ),
                     SizedBox(height: height * 0.01),
-
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final spacing = width * 0.04;
-                        Widget infoItem(String label, String value) {
-                          return ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: constraints.maxWidth),
-                            child: Text(
-                              '$label: $value',
-                              style: detailTextStyle,
-                              softWrap: false,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }
-
-                        return Wrap(
-                          spacing: spacing,
-                          runSpacing: 4,
-                          children: [
-                            // Тут використовуємо ключі з l10n
-                            infoItem(l10n.status, task['status']),
-                            infoItem(l10n.category, task['category']),
-                          ],
-                        );
-                      },
+                    Wrap(
+                      spacing: width * 0.04,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          '${l10n.status}: ${task.status.toLocalizedName(context)}',
+                          style: detailTextStyle,
+                        ),
+                        if (task.categoryName != null)
+                          Text(
+                            '${l10n.category}: ${task.categoryName}',
+                            style: detailTextStyle,
+                          ),
+                      ],
                     ),
-
-                    SizedBox(height: height * 0.005),
-                    Text(
-                      l10n.dueWithValue(task['due']),
-                      style: detailTextStyle,
-                    ),
+                    if (task.dueDate != null) ...[
+                      SizedBox(height: height * 0.005),
+                      Text(
+                        l10n.dueWithValue(DateFormat('dd.MM.yyyy HH:mm').format(task.dueDate!)),
+                        style: detailTextStyle?.copyWith(
+                          color: task.isOverdue ? theme.colorScheme.error : null,
+                        ),
+                      ),
+                    ]
                   ],
                 ),
               ),

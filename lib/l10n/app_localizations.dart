@@ -398,6 +398,12 @@ abstract class AppLocalizations {
   /// **'No categories yet'**
   String get noCategoriesYet;
 
+  /// No description provided for @noTasksYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks yet'**
+  String get noTasksYet;
+
   /// No description provided for @deleteTaskTitle.
   ///
   /// In en, this message translates to:
@@ -439,24 +445,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get categoryAll;
-
-  /// No description provided for @categoryWork.
-  ///
-  /// In en, this message translates to:
-  /// **'Work'**
-  String get categoryWork;
-
-  /// No description provided for @categoryStudy.
-  ///
-  /// In en, this message translates to:
-  /// **'Study'**
-  String get categoryStudy;
-
-  /// No description provided for @categoryHome.
-  ///
-  /// In en, this message translates to:
-  /// **'Home'**
-  String get categoryHome;
 
   /// No description provided for @statusNew.
   ///
