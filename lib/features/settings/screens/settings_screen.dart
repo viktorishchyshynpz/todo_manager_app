@@ -1,8 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '/core/routes/app_routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../auth/data/repositories/auth_repository.dart';
+import '../../auth/logic/bloc/auth_bloc.dart';
+import '../../auth/logic/bloc/auth_event.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,17 +18,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushNotifications = false;
   bool _emailReminders = false;
 
-  // Зберігаємо вибрану мову.
-  // Увага: в ідеалі тут треба зберігати код мови ('en', 'uk'), а не перекладене слово.
-  // Але для візуального прикладу залишимо поки так, ініціалізуємо пізніше.
   String? _selectedLanguage;
 
-  final user = AuthRepository.instance.currentUser;
+  // ВИДАЛЯЄМО: final user = AuthRepository.instance.currentUser;
+  // Ми будемо отримувати юзера через context.read<AuthBloc>() або BlocBuilder
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Ініціалізуємо початкове значення мови, якщо воно ще не вибране
+    // Ініціалізуємо початкове значення мови
     _selectedLanguage ??= AppLocalizations.of(context)!.english;
   }
 
@@ -35,13 +34,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    final String userEmail = user?.email ?? '';
-    final l10n = AppLocalizations.of(context)!; // Коротке посилання для зручності
+    final l10n = AppLocalizations.of(context)!;
 
-    // Список формуємо прямо в build, щоб він оновлювався при зміні мови
+    // Отримуємо поточного юзера зі стану блоку
+    // select дозволяє слухати тільки зміни юзера, а не всі зміни стану
+    final user = context.select((AuthBloc bloc) => bloc.state.user);
+    final String userEmail = user?.email ?? '';
+
     final List<String> languages = [l10n.english, l10n.ukrainian];
 
-    // Страховка, якщо вибрана мова раптом не в списку (наприклад, при перемиканні локалі)
     if (!languages.contains(_selectedLanguage)) {
       _selectedLanguage = languages.first;
     }
@@ -113,12 +114,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Блок: Мова інтерфейсу
                     _buildSettingsBlock(
                       context: context,
-                      title: l10n.language, // Або l10n.language, якщо додасте в arb
+                      title: l10n.language,
                       minSide: minSide,
                       width: width,
                       height: height,
                       child: DropdownButtonFormField<String>(
-                        initialValue: _selectedLanguage, // Використовуємо value замість initialValue для динамічних змін
+                        initialValue: _selectedLanguage, // Використовуємо value
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
@@ -137,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedLanguage = value!;
-                            // ТУТ треба буде додати логіку зміни локалі app (через Bloc/Provider)
+                            // TODO: Тут буде виклик SettingsCubit для зміни локалі
                           });
                         },
                       ),
@@ -148,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Блок: Сповіщення
                     _buildSettingsBlock(
                       context: context,
-                      title: l10n.notifiacations, // Використав заголовок з перекладу
+                      title: l10n.notifiacations,
                       minSide: minSide,
                       width: width,
                       height: height,
@@ -239,7 +240,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           if (userEmail.isNotEmpty) ...[
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               userEmail,
                               style: TextStyle(
@@ -317,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           content: Text(
             email.isNotEmpty
-                ? 'Ви дійсно хочете вийти з акаунту $email?' // Тут можна додати localized string з параметром
+                ? 'Ви дійсно хочете вийти з акаунту $email?'
                 : l10n.areYouSureLogOut,
           ),
           actions: [
@@ -327,20 +328,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
               child: Text(
                 l10n.cancel,
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
             TextButton(
-              onPressed: () async {
-                await AuthRepository.instance.signOut();
+              onPressed: () {
+                // ВИПРАВЛЕНО: Викликаємо подію BLoC замість прямого виклику репо
+                context.read<AuthBloc>().add(AuthLogoutRequested());
 
                 if (context.mounted) {
                   Navigator.pop(context);
-                  Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.welcome,
-                          (route) => false
-                  );
+                  // AuthGate в main.dart автоматично перекине на WelcomeScreen,
+                  // але ми також робимо popUntil, щоб очистити стек навігації
+                  Navigator.of(context).popUntil((route) => route.isFirst);
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

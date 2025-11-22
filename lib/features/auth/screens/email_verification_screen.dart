@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../data/repositories/auth_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../l10n/app_localizations.dart';
+import '../logic/bloc/auth_bloc.dart';
+import '../logic/bloc/auth_event.dart';
+import '../logic/bloc/auth_state.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
@@ -13,14 +15,9 @@ class EmailVerificationScreen extends StatefulWidget {
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  final AuthRepository _authRepository = AuthRepository.instance;
-
-  bool _isLoading = false;
-  bool _isResending = false;
-  bool _isDeleting = false; // Щоб уникнути подвійного виклику видалення
-
   int _secondsRemaining = 60;
   Timer? _verificationTimer;
+  bool _isResending = false; // Для локального UI ефекту (щоб не блокувати весь екран блоком)
 
   @override
   void initState() {
@@ -34,272 +31,164 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     super.dispose();
   }
 
-  // --- ДОПОМІЖНІ МЕТОДИ (DRY) ---
-
-  void _navigateToWelcome() {
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.welcome, (_) => false);
-    }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError
-            ? Theme.of(context).colorScheme.error
-            : Theme.of(context).colorScheme.primary,
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
-  // --- ЛОГІКА ---
-
   void _startVerificationTimer() {
     _verificationTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-
       setState(() {
         if (_secondsRemaining > 0) {
           _secondsRemaining--;
         } else {
           timer.cancel();
-          // Час вийшов - агресивне видалення
-          _deleteUnverifiedAccount(reason: 'timeout');
+          // Час вийшов - викликаємо подію видалення в Блоці
+          context.read<AuthBloc>().add(AuthDeleteAccountRequested());
         }
       });
     });
   }
 
-  /// Агресивне видалення акаунту
-  /// [reason] - 'timeout' (час вийшов) або 'exit' (натиснув кнопку виходу)
-  Future<void> _deleteUnverifiedAccount({String reason = 'exit'}) async {
-    if (_isDeleting) return;
-    _isDeleting = true;
-
-    // Зупиняємо таймер, щоб він не тригерив нічого паралельно
-    _verificationTimer?.cancel();
-
-    final l10n = AppLocalizations.of(context)!;
-
-    try {
-      final user = _authRepository.currentUser;
-
-      // Якщо користувача вже немає (вилогінився десь інде), просто йдемо на Welcome
-      if (user == null) {
-        _navigateToWelcome();
-        return;
-      }
-
-      // Оновлюємо, щоб переконатися, що він все ще не верифікований
-      await user.reload();
-      final reloadedUser = FirebaseAuth.instance.currentUser;
-
-      // Видаляємо ТІЛЬКИ якщо пошта досі не підтверджена
-      if (reloadedUser != null && !reloadedUser.emailVerified) {
-        await reloadedUser.delete();
-
-        // Показуємо повідомлення залежно від причини
-        if (reason == 'timeout') {
-          _showSnackBar(l10n.emailVerificationExpiredMessage);
-        }
-      }
-
-      // Успішно видалили або він був вже верифікований (але ми все одно виходимо)
-      _navigateToWelcome();
-
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
-        // Якщо видалення вимагає повторного входу - просто виходимо
-        await _authRepository.signOut();
-        _showSnackBar(l10n.deleteRequiresRecentLogin);
-        _navigateToWelcome();
-      } else {
-        // Інші помилки
-        _showSnackBar(l10n.errorWithDetails(e.message ?? 'Unknown error'), isError: true);
-        // Все одно викидаємо на Welcome, щоб не застряг на екрані
-        _navigateToWelcome();
-      }
-    } catch (e) {
-      _showSnackBar(l10n.errorWithDetails(e.toString()), isError: true);
-      _navigateToWelcome();
-    } finally {
-      if (mounted) {
-        _isDeleting = false;
-      }
-    }
+  void _onCheckPressed() {
+    context.read<AuthBloc>().add(AuthCheckVerificationStatus());
   }
 
-  Future<void> _checkEmailVerified() async {
-    setState(() => _isLoading = true);
-    final l10n = AppLocalizations.of(context)!;
-
-    try {
-      await _authRepository.currentUser?.reload();
-      final user = _authRepository.currentUser;
-
-      if (user?.emailVerified == true) {
-        _verificationTimer?.cancel();
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (_) => false);
-        }
-      } else {
-        _showSnackBar(l10n.emailNotVerifiedMessage);
-      }
-    } catch (e) {
-      _showSnackBar(l10n.errorWithDetails(e.toString()), isError: true);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _resendVerificationEmail() async {
+  void _onResendPressed() {
     setState(() => _isResending = true);
-    final l10n = AppLocalizations.of(context)!;
-
-    try {
-      await _authRepository.sendVerificationEmail();
-
-      setState(() {
-        _secondsRemaining = 60;
-      });
-      // --------------------------------------------------
-
-      _showSnackBar(l10n.resendVerificationSuccess);
-    } catch (e) {
-      _showSnackBar(l10n.errorWithDetails(e.toString()), isError: true);
-    } finally {
-      if (mounted) setState(() => _isResending = false);
+    context.read<AuthBloc>().add(AuthResendVerificationEmail());
+    // Скидаємо таймер локально
+    setState(() {
+      _secondsRemaining = 60;
+      _isResending = false;
+    });
+    // Перезапускаємо таймер, якщо він зупинився
+    if (!(_verificationTimer?.isActive ?? false)) {
+      _startVerificationTimer();
     }
   }
 
-  String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  void _onExitPressed() {
+    context.read<AuthBloc>().add(AuthDeleteAccountRequested());
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    // Оголошуємо l10n один раз
     final l10n = AppLocalizations.of(context)!;
+
+    // Отримуємо email з поточного стану
+    final email = context.select((AuthBloc bloc) => bloc.state.user?.email ?? '');
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.emailVerificationAppBar),
         actions: [
-          // Кнопка примусового виходу з видаленням
           IconButton(
             icon: Icon(Icons.exit_to_app, color: theme.iconTheme.color),
-            onPressed: () => _deleteUnverifiedAccount(reason: 'exit'),
+            onPressed: _onExitPressed,
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.email_outlined,
-                      size: 80,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      l10n.emailVerificationHeader,
-                      style: textTheme.headlineSmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.emailVerificationSentTo(_authRepository.currentUser?.email ?? ''),
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 24),
+      body: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state.status == AuthStatus.authenticated) {
+            // Успішно підтверджено
+            Navigator.pushNamedAndRemoveUntil(
+                context, AppRoutes.home, (_) => false);
+          } else if (state.status == AuthStatus.unauthenticated) {
+            // Акаунт видалено або вийшов
+            Navigator.pushNamedAndRemoveUntil(
+                context, AppRoutes.welcome, (_) => false);
+          } else if (state.errorMessage != null) {
+            // Обробка помилок
+            if (state.errorMessage == 'email-not-verified') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.emailNotVerifiedMessage)),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage!)),
+              );
+            }
+          } else if (state.infoMessage != null) {
+            if (state.infoMessage == 'verification-email-sent') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.resendVerificationSuccess)),
+              );
+            }
+          }
+        },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.email_outlined, size: 80, color: theme.colorScheme.primary),
+                      const SizedBox(height: 24),
+                      Text(l10n.emailVerificationHeader, style: textTheme.headlineSmall, textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      Text(l10n.emailVerificationSentTo(email), textAlign: TextAlign.center, style: textTheme.bodyLarge),
+                      const SizedBox(height: 24),
 
-                    // Таймер
-                    Column(
-                      children: [
-                        Text(
-                          l10n.emailVerificationTimeLabel,
-                          style: textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _formatTime(_secondsRemaining),
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: _secondsRemaining < 10 ? theme.colorScheme.error : null,
+                      // Таймер
+                      Column(
+                        children: [
+                          Text(l10n.emailVerificationTimeLabel, style: textTheme.bodyMedium),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}',
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: _secondsRemaining < 10 ? theme.colorScheme.error : null,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.emailVerificationTimeExpiredNote,
-                          textAlign: TextAlign.center,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.outline,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    if (_isLoading)
-                      CircularProgressIndicator(color: theme.colorScheme.primary)
-                    else
-                      ElevatedButton(
-                        onPressed: _checkEmailVerified,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          l10n.emailVerifiedButton,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                          const SizedBox(height: 8),
+                          Text(l10n.emailVerificationTimeExpiredNote, textAlign: TextAlign.center, style: textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline)),
+                        ],
                       ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 32),
 
-                    TextButton(
-                      onPressed: _isResending ? null : _resendVerificationEmail,
-                      child: _isResending
-                          ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: theme.colorScheme.primary,
-                        ),
-                      )
-                          : Text(l10n.resendVerificationButton),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                      BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          if (state.status == AuthStatus.loading) {
+                            return CircularProgressIndicator(color: theme.colorScheme.primary);
+                          }
+                          return ElevatedButton(
+                            onPressed: _onCheckPressed,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(l10n.emailVerifiedButton, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      TextButton(
+                        onPressed: _isResending ? null : _onResendPressed,
+                        child: _isResending
+                            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.primary))
+                            : Text(l10n.resendVerificationButton),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

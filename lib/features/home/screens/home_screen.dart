@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/core/routes/app_routes.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../auth/data/repositories/auth_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,25 +19,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedCategory;
 
   DateTime? _lastBackPressed;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkEmailVerification();
-  }
-
-  void _checkEmailVerification() async {
-    final user = AuthRepository.instance.currentUser;
-    if (user != null && !user.emailVerified) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.emailVerification,
-              (route) => false,
-        );
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

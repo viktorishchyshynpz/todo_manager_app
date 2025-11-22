@@ -1,12 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthRepository {
-  AuthRepository._();
-  static final AuthRepository instance = AuthRepository._();
+  final FirebaseAuth _firebaseAuth;
 
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  // Конструктор з опціональним параметром для тестування
+  AuthRepository({FirebaseAuth? firebaseAuth})
+      : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
   User? get currentUser => _firebaseAuth.currentUser;
+
+  // Потік змін стану авторизації
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   Future<User?> signIn({
@@ -20,7 +23,6 @@ class AuthRepository {
       );
       return credential.user;
     } on FirebaseAuthException catch (e) {
-      // Викидаємо сам код помилки або оброблений код
       throw _handleAuthException(e);
     } catch (_) {
       throw 'unknown-error';
@@ -51,15 +53,26 @@ class AuthRepository {
     }
   }
 
+  // Оновлення користувача (важливо для перевірки emailVerified)
+  Future<User?> reloadUser() async {
+    final user = _firebaseAuth.currentUser;
+    await user?.reload();
+    return _firebaseAuth.currentUser;
+  }
+
   Future<void> deleteUnverifiedAccount() async {
     final user = _firebaseAuth.currentUser;
-    if (user != null && !user.emailVerified) {
-      try {
-        await user.delete();
-      } on FirebaseAuthException catch (e) {
-        throw _handleAuthException(e);
-      } catch (_) {
-        throw 'account-deletion-error';
+    if (user != null) {
+      // Оновлюємо дані перед видаленням
+      await user.reload();
+      if (!user.emailVerified) {
+        try {
+          await user.delete();
+        } on FirebaseAuthException catch (e) {
+          throw _handleAuthException(e);
+        } catch (_) {
+          throw 'account-deletion-error';
+        }
       }
     }
   }
@@ -68,9 +81,7 @@ class AuthRepository {
     await _firebaseAuth.signOut();
   }
 
-  // Повертаємо КОДИ, а не текст. Текст підставить UI.
   String _handleAuthException(FirebaseAuthException e) {
-    // Повертаємо код помилки, щоб UI міг його перекласти
     return e.code;
   }
 }
