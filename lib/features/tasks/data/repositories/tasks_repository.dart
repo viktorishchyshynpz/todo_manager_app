@@ -1,46 +1,50 @@
-import 'package:uuid/uuid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/task_model.dart';
 
 class TasksRepository {
-  final List<TaskModel> _mockTasks = [
-    TaskModel(
-      id: const Uuid().v4(),
-      title: 'Finish Lab 5',
-      description: 'Implement BLoC pattern',
-      categoryName: 'Study',
-      status: TaskStatus.inProgress,
-      dueDate: DateTime.now().add(const Duration(days: 2)),
-    ),
-    TaskModel(
-      id: const Uuid().v4(),
-      title: 'Buy groceries',
-      description: 'Milk, Bread, Eggs',
-      categoryName: 'Home',
-      status: TaskStatus.new_,
-      dueDate: DateTime.now().add(const Duration(hours: 5)),
-    ),
-  ];
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
-  Future<List<TaskModel>> getTasks() async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    return List.from(_mockTasks);
+  TasksRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
+  // Допоміжний метод для отримання шляху до колекції завдань поточного юзера
+  CollectionReference _getTasksCollection() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      throw Exception('User not logged in');
+    }
+    return _firestore.collection('users').doc(userId).collection('tasks');
   }
 
-  Future<void> addTask(TaskModel task) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _mockTasks.add(task);
-  }
-
-  Future<void> updateTask(TaskModel task) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final index = _mockTasks.indexWhere((t) => t.id == task.id);
-    if (index != -1) {
-      _mockTasks[index] = task;
+  // Отримання потоку даних (Real-time updates)
+  Stream<List<TaskModel>> getTasksStream() {
+    try {
+      return _getTasksCollection()
+          .orderBy('dueDate', descending: false) // Сортування (опціонально)
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs.map((doc) => TaskModel.fromFirestore(doc)).toList();
+      });
+    } catch (e) {
+      // Якщо користувач не залогінений, повертаємо пустий список
+      return Stream.value([]);
     }
   }
 
+  Future<void> addTask(TaskModel task) async {
+    // Firestore сам згенерує ID, якщо ми використаємо .add(),
+    // але у нас в моделі вже є ID (UUID), тому використовуємо .doc(id).set()
+    await _getTasksCollection().doc(task.id).set(task.toFirestore());
+  }
+
+  Future<void> updateTask(TaskModel task) async {
+    await _getTasksCollection().doc(task.id).update(task.toFirestore());
+  }
+
   Future<void> deleteTask(String id) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _mockTasks.removeWhere((t) => t.id == id);
+    await _getTasksCollection().doc(id).delete();
   }
 }

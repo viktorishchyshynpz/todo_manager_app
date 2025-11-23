@@ -1,39 +1,55 @@
-import 'package:uuid/uuid.dart'; // Додай 'uuid: ^4.0.0' в pubspec.yaml
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/category_model.dart';
 
 class CategoriesRepository {
-  // Імітація бази даних
-  final List<CategoryModel> _mockCategories = [
-    const CategoryModel(id: '1', name: 'Work'),
-    const CategoryModel(id: '2', name: 'Study'),
-    const CategoryModel(id: '3', name: 'Home'),
-  ];
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
 
-  Future<List<CategoryModel>> getCategories() async {
-    // Імітація затримки
-    await Future.delayed(const Duration(milliseconds: 500));
-    return List.from(_mockCategories);
+  CategoriesRepository({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
+  // Шлях до колекції категорій поточного юзера
+  CollectionReference _getCategoriesCollection() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      throw Exception('User not logged in');
+    }
+    return _firestore.collection('users').doc(userId).collection('categories');
   }
 
-  Future<void> addCategory(String name) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final newCategory = CategoryModel(
-      id: const Uuid().v4(),
-      name: name,
-    );
-    _mockCategories.add(newCategory);
-  }
-
-  Future<void> updateCategory(CategoryModel category) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    final index = _mockCategories.indexWhere((c) => c.id == category.id);
-    if (index != -1) {
-      _mockCategories[index] = category;
+  // Отримання потоку категорій (Real-time)
+  Stream<List<CategoryModel>> getCategoriesStream() {
+    try {
+      return _getCategoriesCollection()
+          .orderBy('name') // Сортуємо за алфавітом
+          .snapshots()
+          .map((snapshot) {
+        return snapshot.docs.map((doc) => CategoryModel.fromFirestore(doc)).toList();
+      });
+    } catch (e) {
+      return Stream.value([]);
     }
   }
 
+  // Метод для сумісності зі старим кодом (якщо десь використовується Future)
+  // Але краще переходити на Stream
+  Future<List<CategoryModel>> getCategories() async {
+    final snapshot = await _getCategoriesCollection().get();
+    return snapshot.docs.map((doc) => CategoryModel.fromFirestore(doc)).toList();
+  }
+
+  Future<void> addCategory(String name) async {
+    // Додаємо нову категорію (Firestore згенерує ID)
+    await _getCategoriesCollection().add({'name': name});
+  }
+
+  Future<void> updateCategory(CategoryModel category) async {
+    await _getCategoriesCollection().doc(category.id).update(category.toFirestore());
+  }
+
   Future<void> deleteCategory(String id) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _mockCategories.removeWhere((c) => c.id == id);
+    await _getCategoriesCollection().doc(id).delete();
   }
 }

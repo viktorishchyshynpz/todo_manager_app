@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 
 class CategoryModel extends Equatable {
@@ -9,7 +10,6 @@ class CategoryModel extends Equatable {
     required this.name,
   });
 
-  // Метод копіювання для зручного редагування
   CategoryModel copyWith({
     String? id,
     String? name,
@@ -19,6 +19,23 @@ class CategoryModel extends Equatable {
       name: name ?? this.name,
     );
   }
+
+  // --- FIREBASE INTEGRATION ---
+
+  factory CategoryModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return CategoryModel(
+      id: doc.id,
+      name: data['name'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'name': name,
+    };
+  }
+  // ---------------------------
 
   @override
   List<Object?> get props => [id, name];

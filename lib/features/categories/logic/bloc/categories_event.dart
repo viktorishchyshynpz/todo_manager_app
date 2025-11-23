@@ -26,6 +26,13 @@ class UpdateCategory extends CategoriesEvent {
   List<Object?> get props => [category];
 }
 
+class CategoriesUpdated extends CategoriesEvent {
+  final List<CategoryModel> categories;
+  const CategoriesUpdated(this.categories);
+  @override
+  List<Object?> get props => [categories];
+}
+
 class DeleteCategory extends CategoriesEvent {
   final String id;
   const DeleteCategory(this.id);

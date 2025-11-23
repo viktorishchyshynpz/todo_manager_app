@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -8,14 +9,10 @@ extension TaskStatusX on TaskStatus {
   String toLocalizedName(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     switch (this) {
-      case TaskStatus.new_:
-        return l10n.statusNew;
-      case TaskStatus.inProgress:
-        return l10n.statusInProgress;
-      case TaskStatus.completed:
-        return l10n.statusCompleted;
-      case TaskStatus.canceled:
-        return l10n.statusCanceled;
+      case TaskStatus.new_: return l10n.statusNew;
+      case TaskStatus.inProgress: return l10n.statusInProgress;
+      case TaskStatus.completed: return l10n.statusCompleted;
+      case TaskStatus.canceled: return l10n.statusCanceled;
     }
   }
 }
@@ -23,24 +20,49 @@ extension TaskStatusX on TaskStatus {
 class TaskModel extends Equatable {
   final String id;
   final String title;
-  final String? description;     // Може бути null
-  final String? categoryName;    // Може бути null
-  final TaskStatus status;       // Залишимо обов'язковим, але з дефолтним значенням
-  final DateTime? dueDate;       // Може бути null
+  final String? description;
+  final String? categoryName;
+  final TaskStatus status;
+  final DateTime? dueDate;
 
   const TaskModel({
     required this.id,
     required this.title,
     this.description,
     this.categoryName,
-    this.status = TaskStatus.new_, // Значення за замовчуванням
+    this.status = TaskStatus.new_,
     this.dueDate,
   });
 
-  // Зручний метод для перевірки, чи прострочене завдання
+  // Метод для перевірки прострочки
   bool get isOverdue {
     if (dueDate == null) return false;
     return dueDate!.isBefore(DateTime.now()) && status != TaskStatus.completed;
+  }
+
+  factory TaskModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return TaskModel(
+      id: doc.id,
+      title: data['title'] ?? '',
+      description: data['description'],
+      categoryName: data['categoryName'],
+      status: TaskStatus.values.firstWhere(
+            (e) => e.name == (data['status'] ?? 'new_'),
+        orElse: () => TaskStatus.new_,
+      ),
+      dueDate: (data['dueDate'] as Timestamp?)?.toDate(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'description': description,
+      'categoryName': categoryName,
+      'status': status.name,
+      'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
+    };
   }
 
   TaskModel copyWith({
