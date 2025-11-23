@@ -160,5 +160,5 @@
   "darkMode": "Dark Mode",
   "notifications": "Notifications",
   "pushNotifications": "Push Notifications",
-  "emailReminders": "Email Reminders"
+  "localNotifications": "Local Notifications"
 }

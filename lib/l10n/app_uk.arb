@@ -116,6 +116,6 @@
   "dontHaveAccount": "Немає акаунту? ",
   "darkMode": "Темна тема",
   "notifications": "Сповіщення",
-  "pushNotifications": "Push сповіщення",
-  "emailReminders": "Email нагадування"
+  "pushNotifications": "Пуш-сповіщення",
+  "localNotifications": "Локальні сповіщення"
 }

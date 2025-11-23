@@ -716,11 +716,11 @@ abstract class AppLocalizations {
   /// **'Push Notifications'**
   String get pushNotifications;
 
-  /// No description provided for @emailReminders.
+  /// No description provided for @localNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Email Reminders'**
-  String get emailReminders;
+  /// **'Local Notifications'**
+  String get localNotifications;
 }
 
 class _AppLocalizationsDelegate

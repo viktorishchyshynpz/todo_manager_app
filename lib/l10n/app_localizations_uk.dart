@@ -332,8 +332,8 @@ class AppLocalizationsUk extends AppLocalizations {
   String get notifications => 'Сповіщення';
 
   @override
-  String get pushNotifications => 'Push сповіщення';
+  String get pushNotifications => 'Пуш-сповіщення';
 
   @override
-  String get emailReminders => 'Email нагадування';
+  String get localNotifications => 'Локальні сповіщення';
 }

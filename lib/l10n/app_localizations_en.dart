@@ -338,5 +338,5 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pushNotifications => 'Push Notifications';
 
   @override
-  String get emailReminders => 'Email Reminders';
+  String get localNotifications => 'Local Notifications';
 }

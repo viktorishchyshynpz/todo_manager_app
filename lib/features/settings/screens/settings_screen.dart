@@ -134,7 +134,7 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               SizedBox(height: height * 0.01),
                               _buildSwitchRow(
-                                label: l10n.emailReminders,
+                                label: l10n.localNotifications,
                                 value: state.isEmailEnabled,
                                 onChanged: (val) => context.read<SettingsCubit>().toggleEmail(val),
                                 textTheme: textTheme,
