@@ -28,9 +28,9 @@ import 'features/categories/logic/bloc/categories_bloc.dart';
 import 'features/categories/logic/bloc/categories_event.dart';
 
 // Tasks
-import 'features/tasks/data/repositories/tasks_repository.dart'; // New
-import 'features/tasks/logic/bloc/tasks_bloc.dart'; // New
-import 'features/tasks/logic/bloc/tasks_event.dart'; // New
+import 'features/tasks/data/repositories/tasks_repository.dart';
+import 'features/tasks/logic/bloc/tasks_bloc.dart';
+import 'features/tasks/logic/bloc/tasks_event.dart';
 import 'features/tasks/data/models/task_model.dart';
 
 // Screens
@@ -54,7 +54,6 @@ void main() async {
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   await FirebaseAnalytics.instance.logEvent(name: 'app_started');
 
-  // 1. Ініціалізація SharedPreferences
   final prefs = await SharedPreferences.getInstance();
   final authRepository = AuthRepository();
   final categoriesRepository = CategoriesRepository();
@@ -85,7 +84,6 @@ class ToDoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Використовуємо MultiRepositoryProvider для передачі обох репозиторіїв
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: authRepository),
@@ -93,77 +91,87 @@ class ToDoApp extends StatelessWidget {
         RepositoryProvider.value(value: tasksRepository),
         RepositoryProvider.value(value: settingsRepository),
       ],
+      // 1. Спочатку ініціалізуємо "вічні" Блоки (Auth, Settings)
       child: MultiBlocProvider(
         providers: [
-          // Auth Bloc
           BlocProvider(
             create: (context) => AuthBloc(
               authRepository: context.read<AuthRepository>(),
             )..add(AuthCheckRequested()),
           ),
-          // Categories Bloc
-          BlocProvider(
-            create: (context) => CategoriesBloc(repository: context.read<CategoriesRepository>()
-            )..add(LoadCategories()),
-          ),
-          // Tasks Bloc
-          BlocProvider(
-            create: (context) => TasksBloc(
-              repository: context.read<TasksRepository>(),
-            )..add(LoadTasks()),
-          ),
-          // Settings Cubit
           BlocProvider(
             create: (context) => SettingsCubit(
               context.read<SettingsRepository>(),
             ),
           ),
         ],
-        // BlocBuilder слухає SettingsCubit, щоб оновлювати тему і мову всього додатку
-        child: BlocBuilder<SettingsCubit, SettingsState>(
-          builder: (context, settingsState) {
-            return MaterialApp(
-              debugShowCheckedModeBanner: false,
-              title: 'ToDo Manager',
-
-              // ТЕМА: Беремо зі стану
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: settingsState.themeMode,
-
-              // ЛОКАЛІЗАЦІЯ: Беремо зі стану
-              locale: settingsState.locale,
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
+        // 2. Слухаємо стан авторизації
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            // 3. Створюємо провайдери даних (Tasks, Categories)
+            // ВАЖЛИВО: key змінюється при зміні user ID.
+            // Це змушує Flutter повністю перестворити цей віджет і Блоки всередині нього,
+            // коли користувач змінюється.
+            return MultiBlocProvider(
+              key: ValueKey(authState.user?.uid),
+              providers: [
+                BlocProvider(
+                  create: (context) => CategoriesBloc(
+                    repository: context.read<CategoriesRepository>(),
+                  )..add(LoadCategories()),
+                ),
+                BlocProvider(
+                  create: (context) => TasksBloc(
+                    repository: context.read<TasksRepository>(),
+                  )..add(LoadTasks()),
+                ),
               ],
-              supportedLocales: const [
-                Locale('en'),
-                Locale('uk'),
-              ],
+              // 4. Тепер будуємо MaterialApp. Оскільки він ВНУТРЕДИНІ MultiBlocProvider,
+              // всі routes (включаючи NewTaskScreen) матимуть доступ до Блоків.
+              child: BlocBuilder<SettingsCubit, SettingsState>(
+                builder: (context, settingsState) {
+                  return MaterialApp(
+                    debugShowCheckedModeBanner: false,
+                    title: 'ToDo Manager',
 
-              home: const AuthGate(),
+                    theme: AppTheme.lightTheme,
+                    darkTheme: AppTheme.darkTheme,
+                    themeMode: settingsState.themeMode,
 
-              routes: {
-                AppRoutes.login: (context) => const LoginScreen(),
-                AppRoutes.register: (context) => const RegisterScreen(),
-                AppRoutes.home: (context) => const HomeScreen(),
-                AppRoutes.settings: (context) => const SettingsScreen(),
-                AppRoutes.manageCategories: (context) => const ManageCategoriesScreen(),
-                AppRoutes.newTask: (context) => const NewTaskScreen(),
-                AppRoutes.emailVerification: (context) => const EmailVerificationScreen(),
-                AppRoutes.editTask: (context) {
-                  final args = ModalRoute.of(context)?.settings.arguments;
-                  if (args is TaskModel) { // Change Map to TaskModel
-                    return EditTaskScreen(task: args);
-                  }
-                  return const Scaffold(
-                    body: Center(child: Text('Error: Task data missing!')),
+                    locale: settingsState.locale,
+                    localizationsDelegates: const [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    supportedLocales: const [
+                      Locale('en'),
+                      Locale('uk'),
+                    ],
+
+                    home: const AuthGate(),
+
+                    routes: {
+                      AppRoutes.login: (context) => const LoginScreen(),
+                      AppRoutes.register: (context) => const RegisterScreen(),
+                      AppRoutes.settings: (context) => const SettingsScreen(),
+                      AppRoutes.manageCategories: (context) => const ManageCategoriesScreen(),
+                      AppRoutes.newTask: (context) => const NewTaskScreen(),
+                      AppRoutes.emailVerification: (context) => const EmailVerificationScreen(),
+                      AppRoutes.editTask: (context) {
+                        final args = ModalRoute.of(context)?.settings.arguments;
+                        if (args is TaskModel) {
+                          return EditTaskScreen(task: args);
+                        }
+                        return const Scaffold(
+                          body: Center(child: Text('Error: Task data missing!')),
+                        );
+                      },
+                    },
                   );
                 },
-              },
+              ),
             );
           },
         ),
@@ -177,6 +185,7 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Тут ми просто керуємо навігацією, провайдери вже надані вище
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state.status == AuthStatus.initial || state.status == AuthStatus.loading) {

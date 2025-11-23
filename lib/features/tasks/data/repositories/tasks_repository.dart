@@ -21,17 +21,12 @@ class TasksRepository {
 
   // Отримання потоку даних (Real-time updates)
   Stream<List<TaskModel>> getTasksStream() {
-    try {
       return _getTasksCollection()
           .orderBy('dueDate', descending: false) // Сортування (опціонально)
           .snapshots()
           .map((snapshot) {
         return snapshot.docs.map((doc) => TaskModel.fromFirestore(doc)).toList();
       });
-    } catch (e) {
-      // Якщо користувач не залогінений, повертаємо пустий список
-      return Stream.value([]);
-    }
   }
 
   Future<void> addTask(TaskModel task) async {

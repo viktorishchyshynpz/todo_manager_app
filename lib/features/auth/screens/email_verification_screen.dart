@@ -93,9 +93,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.status == AuthStatus.authenticated) {
-            // Успішно підтверджено
-            Navigator.pushNamedAndRemoveUntil(
-                context, AppRoutes.home, (_) => false);
+            Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
           } else if (state.status == AuthStatus.unauthenticated) {
             // Акаунт видалено або вийшов
             Navigator.pushNamedAndRemoveUntil(

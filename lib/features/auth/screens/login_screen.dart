@@ -67,8 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (state.status == AuthStatus.authenticated) {
             await _analytics.logLogin('email_password');
             if (mounted) {
-              Navigator.pushNamedAndRemoveUntil(
-                  context, AppRoutes.home, (route) => false);
+              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
             }
           } else if (state.status == AuthStatus.unverified) {
             // Якщо логін успішний, але пошта не підтверджена

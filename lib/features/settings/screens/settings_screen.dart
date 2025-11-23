@@ -259,7 +259,7 @@ class SettingsScreen extends StatelessWidget {
                 context.read<AuthBloc>().add(AuthLogoutRequested());
 
                 // Очищення навігації (повернення до AuthGate)
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(l10n.loggedOutSuccessfully)),

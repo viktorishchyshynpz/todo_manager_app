@@ -21,16 +21,12 @@ class CategoriesRepository {
 
   // Отримання потоку категорій (Real-time)
   Stream<List<CategoryModel>> getCategoriesStream() {
-    try {
       return _getCategoriesCollection()
           .orderBy('name') // Сортуємо за алфавітом
           .snapshots()
           .map((snapshot) {
         return snapshot.docs.map((doc) => CategoryModel.fromFirestore(doc)).toList();
       });
-    } catch (e) {
-      return Stream.value([]);
-    }
   }
 
   // Метод для сумісності зі старим кодом (якщо десь використовується Future)
