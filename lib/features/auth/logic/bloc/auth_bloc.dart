@@ -31,7 +31,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final user = _authRepository.currentUser;
 
     if (user != null) {
-      await _authRepository.reloadUser(); // Оновлюємо дані (чи підтвердив пошту)
+      try {
+        await _authRepository.reloadUser();
+      } catch (_) {
+      }
+
       if (user.emailVerified) {
         emit(AuthState.authenticated(user));
       } else {
