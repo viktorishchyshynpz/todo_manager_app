@@ -34,11 +34,13 @@ class TaskModel extends Equatable {
     this.dueDate,
   });
 
-  // Метод для перевірки прострочки
   bool get isOverdue {
     if (dueDate == null) return false;
     return dueDate!.isBefore(DateTime.now()) && status != TaskStatus.completed;
   }
+
+  // Унікальний ID для сповіщень
+  int get notificationId => id.hashCode;
 
   factory TaskModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;

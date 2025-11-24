@@ -5,11 +5,13 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
 
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
 import 'l10n/app_localizations.dart';
+import 'core/services/notification_service.dart';
 
 // Auth
 import 'features/auth/data/repositories/auth_repository.dart';
@@ -47,6 +49,9 @@ import 'features/tasks/screens/edit_task_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Ініціалізуємо базу даних часових поясів на старті
+  tz_data.initializeTimeZones();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -59,6 +64,9 @@ void main() async {
   final categoriesRepository = CategoriesRepository();
   final tasksRepository = TasksRepository();
   final settingsRepository = SettingsRepository(prefs);
+
+  // Ініціалізація сервісу сповіщень
+  await NotificationService.instance.initialize(settingsRepository);
 
   runApp(ToDoApp(
     authRepository: authRepository,
@@ -91,7 +99,6 @@ class ToDoApp extends StatelessWidget {
         RepositoryProvider.value(value: tasksRepository),
         RepositoryProvider.value(value: settingsRepository),
       ],
-      // 1. Спочатку ініціалізуємо "вічні" Блоки (Auth, Settings)
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
@@ -105,13 +112,8 @@ class ToDoApp extends StatelessWidget {
             ),
           ),
         ],
-        // 2. Слухаємо стан авторизації
         child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, authState) {
-            // 3. Створюємо провайдери даних (Tasks, Categories)
-            // ВАЖЛИВО: key змінюється при зміні user ID.
-            // Це змушує Flutter повністю перестворити цей віджет і Блоки всередині нього,
-            // коли користувач змінюється.
             return MultiBlocProvider(
               key: ValueKey(authState.user?.uid),
               providers: [
@@ -126,18 +128,14 @@ class ToDoApp extends StatelessWidget {
                   )..add(LoadTasks()),
                 ),
               ],
-              // 4. Тепер будуємо MaterialApp. Оскільки він ВНУТРЕДИНІ MultiBlocProvider,
-              // всі routes (включаючи NewTaskScreen) матимуть доступ до Блоків.
               child: BlocBuilder<SettingsCubit, SettingsState>(
                 builder: (context, settingsState) {
                   return MaterialApp(
                     debugShowCheckedModeBanner: false,
                     title: 'ToDo Manager',
-
                     theme: AppTheme.lightTheme,
                     darkTheme: AppTheme.darkTheme,
                     themeMode: settingsState.themeMode,
-
                     locale: settingsState.locale,
                     localizationsDelegates: const [
                       AppLocalizations.delegate,
@@ -149,9 +147,7 @@ class ToDoApp extends StatelessWidget {
                       Locale('en'),
                       Locale('uk'),
                     ],
-
                     home: const AuthGate(),
-
                     routes: {
                       AppRoutes.login: (context) => const LoginScreen(),
                       AppRoutes.register: (context) => const RegisterScreen(),
@@ -185,7 +181,6 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Тут ми просто керуємо навігацією, провайдери вже надані вище
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state.status == AuthStatus.initial || state.status == AuthStatus.loading) {
